@@ -30,10 +30,10 @@ KIRCHEN_CFG.Database = {
 
 KIRCHEN_CFG.Schema = {
     members = "kirche_members",
-    logs = "kirche_logs"
+    logs = "kirche_logs",
+    account = "kirche_account"
 }
 
 -- Optional: beim Spawn den RPName synchronisieren
 KIRCHEN_CFG.SyncRPNameOnSpawn = true
 KIRCHEN_CFG.SyncOnSalary = true
-

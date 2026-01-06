@@ -1,6 +1,6 @@
 # Kirchensteuer-System (DarkRP)
 
-Produktionsreifes Kirchensteuer-Addon für Garry’s Mod DarkRP mit Bischof-SWEP, Verwaltungsmenü, automatischem Beitragseinzug und MySQL-Persistenz (mysqloo oder tmysql4).
+Produktionsreifes Kirchensteuer-Addon für Garry’s Mod DarkRP mit Bischof-SWEP, Verwaltungsmenü, automatischem Beitragseinzug, zentralem Kirchenkonto für Einnahmen und MySQL-Persistenz (mysqloo oder tmysql4).
 
 ## Ordnerstruktur
 
@@ -37,6 +37,7 @@ lua/
    - Datenbankzugang (`Database`) und Adapter (`Adapter = "mysqloo"` oder `"tmysql4"`) setzen. **Wichtig:** `database` muss exakt der bestehenden Datenbank (z. B. `db_422750_80`) entsprechen; Tabellen `kirche_members`/`kirche_logs` werden beim Start automatisch erzeugt.
    - Beitragsspannen, Intervalle, Benachrichtigungen, Schulden-Limits anpassen.
    - Optional kann `BishopTeam` ein einzelner Team-Index oder eine Tabelle aus mehreren Team-Indizes sein, falls mehrere Bischof-Ränge erlaubt werden sollen.
+   - Kirchenkonto: Alle eingezogenen Beiträge landen automatisch auf dem Konto; der Bischof kann über das Menü beliebig einzahlen oder auszahlen.
 
 4. **SWEP vergeben**
    - SWEP-Klassenname: `weapon_kirche` (configurierbar).
@@ -64,6 +65,14 @@ CREATE TABLE IF NOT EXISTS kirche_logs (
   amount INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS kirche_account (
+  id TINYINT NOT NULL PRIMARY KEY,
+  balance BIGINT NOT NULL DEFAULT 0
+);
+
+INSERT INTO kirche_account (id, balance) VALUES (1, 0)
+  ON DUPLICATE KEY UPDATE balance = balance;
 ```
 
 ## Testplan (manuell)
@@ -82,3 +91,5 @@ CREATE TABLE IF NOT EXISTS kirche_logs (
    - Menü: Mitglied entfernen → Datensatz aus DB gelöscht, Cache aktualisiert.
 7. **Schulden-Reset (optional)**
    - `AllowDebtReset = true`, Button testen.
+8. **Kirchenkonto**
+   - Nach Einzügen Kontostand prüfen, Einzahlen- und Abheben-Buttons testen (Betrag wird vom Bischofskonto abgezogen bzw. gutgeschrieben).

@@ -44,11 +44,21 @@ function KIRCHEN_DB.EnsureSchema()
         )
     ]], cfg.Schema.logs)
 
+    local account = string.format([[
+        CREATE TABLE IF NOT EXISTS %s (
+            id TINYINT NOT NULL PRIMARY KEY,
+            balance BIGINT NOT NULL DEFAULT 0
+        )
+    ]], cfg.Schema.account or "kirche_account")
+
     KIRCHEN_DB.Query(members, nil, function()
         KIRCHEN_DB.Query(logs, nil, function()
-            pendingSchema = false
-            log("Schema geprüft/erstellt.")
-            hook.Run("KircheSchemaReady")
+            KIRCHEN_DB.Query(account, nil, function()
+                KIRCHEN_DB.Query(string.format("INSERT INTO %s (id, balance) VALUES (1, 0) ON DUPLICATE KEY UPDATE balance = balance", cfg.Schema.account or "kirche_account"))
+                pendingSchema = false
+                log("Schema geprüft/erstellt.")
+                hook.Run("KircheSchemaReady")
+            end)
         end)
     end)
 end

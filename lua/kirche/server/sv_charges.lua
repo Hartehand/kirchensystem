@@ -32,6 +32,11 @@ local function processOnline(member)
         ply:addMoney(-payContribution)
     end
 
+    local collected = payDebt + payContribution
+    if collected > 0 then
+        KIRCHEN.AddToAccount(collected, "charge_collect")
+    end
+
     local newDebt = debt + math.max(0, contribution - payContribution)
     newDebt = capDebt(newDebt)
 

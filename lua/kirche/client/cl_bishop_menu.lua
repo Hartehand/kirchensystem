@@ -5,6 +5,7 @@ local panel
 local memberList = {}
 local textColor = Color(30, 30, 30)
 local headerColor = Color(20, 20, 20)
+local accountBalance = 0
 
 local function sendContributionUpdate(sid, value)
     net.Start(netcfg.BishopUpdateContribution)
@@ -109,6 +110,38 @@ local function buildMenu()
     resetBtn:SetText("Schulden zurücksetzen")
     resetBtn:SetEnabled(cfg.AllowDebtReset)
 
+    local accountLabel = vgui.Create("DLabel", detail)
+    accountLabel:SetPos(10, 280)
+    accountLabel:SetSize(250, 20)
+    accountLabel:SetTextColor(textColor)
+    accountLabel:SetText("Kirchenkonto: 0$")
+
+    local depositEntry = vgui.Create("DNumberWang", detail)
+    depositEntry:SetPos(10, 305)
+    depositEntry:SetSize(120, 25)
+    depositEntry:SetMin(0)
+    depositEntry:SetValue(0)
+
+    local withdrawEntry = vgui.Create("DNumberWang", detail)
+    withdrawEntry:SetPos(140, 305)
+    withdrawEntry:SetSize(120, 25)
+    withdrawEntry:SetMin(0)
+    withdrawEntry:SetValue(0)
+
+    local depositBtn = vgui.Create("DButton", detail)
+    depositBtn:SetPos(10, 335)
+    depositBtn:SetSize(120, 30)
+    depositBtn:SetText("Einzahlen")
+
+    local withdrawBtn = vgui.Create("DButton", detail)
+    withdrawBtn:SetPos(140, 335)
+    withdrawBtn:SetSize(120, 30)
+    withdrawBtn:SetText("Abheben")
+
+    local function refreshAccountLabel()
+        accountLabel:SetText("Kirchenkonto: " .. tostring(accountBalance) .. "$")
+    end
+
     local function updateDetail(row)
         if not row then
             nameLabel:SetText("Kein Mitglied gewählt")
@@ -156,6 +189,28 @@ local function buildMenu()
         populateList(list, filtered)
     end
 
+    depositBtn.DoClick = function()
+        local amount = math.floor(depositEntry:GetValue() or 0)
+        if amount <= 0 then return end
+        net.Start(netcfg.BishopDeposit)
+        net.WriteInt(amount, 32)
+        net.SendToServer()
+    end
+
+    withdrawBtn.DoClick = function()
+        local amount = math.floor(withdrawEntry:GetValue() or 0)
+        if amount <= 0 then return end
+        net.Start(netcfg.BishopWithdraw)
+        net.WriteInt(amount, 32)
+        net.SendToServer()
+    end
+
+    function panel.RefreshAccountLabel(newBalance)
+        accountBalance = newBalance
+        refreshAccountLabel()
+    end
+
+    refreshAccountLabel()
     populateList(list, memberList)
 end
 
@@ -173,4 +228,11 @@ net.Receive(netcfg.BishopData, function()
         }
     end
     buildMenu()
+end)
+
+net.Receive(netcfg.BishopAccount, function()
+    accountBalance = net.ReadInt(32)
+    if IsValid(panel) and panel.RefreshAccountLabel then
+        panel:RefreshAccountLabel(accountBalance)
+    end
 end)

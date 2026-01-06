@@ -1,6 +1,7 @@
 KIRCHEN = KIRCHEN or {}
 KIRCHEN.Members = KIRCHEN.Members or {}
 KIRCHEN.PendingRequests = KIRCHEN.PendingRequests or {}
+KIRCHEN.AccountBalance = KIRCHEN.AccountBalance or 0
 
 local cfg = KIRCHEN_CFG
 local netcfg = KIRCHEN_NET
@@ -123,9 +124,33 @@ local function refreshAllMembers()
     end)
 end
 
+function KIRCHEN.LoadAccount()
+    KIRCHEN_DB.Query(string.format("SELECT balance FROM %s WHERE id = 1", cfg.Schema.account), nil, function(rows)
+        if rows and rows[1] then
+            KIRCHEN.AccountBalance = tonumber(rows[1].balance) or 0
+        end
+    end)
+end
+
+function KIRCHEN.GetAccountBalance()
+    return KIRCHEN.AccountBalance or 0
+end
+
+function KIRCHEN.AddToAccount(amount, reason)
+    amount = math.floor(amount or 0)
+    if amount == 0 then return end
+    local newBalance = KIRCHEN.GetAccountBalance() + amount
+    if newBalance < 0 then return end
+    KIRCHEN.AccountBalance = newBalance
+    KIRCHEN_DB.Query(string.format("UPDATE %s SET balance = balance + ? WHERE id = 1", cfg.Schema.account), {amount}, function()
+        KIRCHEN.LogAction("account", reason or "account_change", amount)
+    end)
+end
+
 local function ensureConnectedCallback()
     if KIRCHEN_DB.IsConnected() then
         refreshAllMembers()
+        KIRCHEN.LoadAccount()
     end
 end
 
@@ -142,9 +167,12 @@ util.AddNetworkString(netcfg.RequestInvite)
 util.AddNetworkString(netcfg.RequestResponse)
 util.AddNetworkString(netcfg.BishopOpen)
 util.AddNetworkString(netcfg.BishopData)
+util.AddNetworkString(netcfg.BishopAccount)
 util.AddNetworkString(netcfg.BishopUpdateContribution)
 util.AddNetworkString(netcfg.BishopRemoveMember)
 util.AddNetworkString(netcfg.BishopResetDebt)
+util.AddNetworkString(netcfg.BishopDeposit)
+util.AddNetworkString(netcfg.BishopWithdraw)
 
 local requestSeq = 0
 local requestCooldown = {}
@@ -177,6 +205,10 @@ function KIRCHEN.OpenBishopMenu(ply)
         net.WriteString(tostring(row.joined_at or ""))
         net.WriteString(tostring(row.last_charge_at or ""))
     end
+    net.Send(ply)
+
+    net.Start(netcfg.BishopAccount)
+    net.WriteInt(KIRCHEN.GetAccountBalance(), 32)
     net.Send(ply)
 end
 
@@ -272,6 +304,45 @@ net.Receive(netcfg.BishopResetDebt, function(_, ply)
         KIRCHEN.LogAction(sid, "debt_reset", 0)
         notify(ply, 0, "[Kirche] Schulden wurden zurückgesetzt.")
     end)
+end)
+
+net.Receive(netcfg.BishopDeposit, function(_, ply)
+    if not KIRCHEN.IsBishop(ply) then return end
+    local amount = math.max(0, net.ReadInt(32))
+    if amount <= 0 then return end
+    local money = 0
+    if ply.getDarkRPVar then
+        money = ply:getDarkRPVar("money") or 0
+    elseif ply.getMoney then
+        money = ply:getMoney()
+    end
+    if money < amount then
+        notify(ply, 1, "[Kirche] Du kannst diesen Betrag nicht einzahlen.")
+        return
+    end
+    ply:addMoney(-amount)
+    KIRCHEN.AddToAccount(amount, "deposit")
+    notify(ply, 0, "[Kirche] Eingezahlt: " .. amount .. "$")
+    net.Start(netcfg.BishopAccount)
+    net.WriteInt(KIRCHEN.GetAccountBalance(), 32)
+    net.Send(ply)
+end)
+
+net.Receive(netcfg.BishopWithdraw, function(_, ply)
+    if not KIRCHEN.IsBishop(ply) then return end
+    local amount = math.max(0, net.ReadInt(32))
+    if amount <= 0 then return end
+    local balance = KIRCHEN.GetAccountBalance()
+    if amount > balance then
+        notify(ply, 1, "[Kirche] Konto hat nicht genug Guthaben.")
+        return
+    end
+    KIRCHEN.AddToAccount(-amount, "withdraw")
+    ply:addMoney(amount)
+    notify(ply, 0, "[Kirche] Ausgezahlt: " .. amount .. "$")
+    net.Start(netcfg.BishopAccount)
+    net.WriteInt(KIRCHEN.GetAccountBalance(), 32)
+    net.Send(ply)
 end)
 
 hook.Add("PlayerSay", "Kirche_OpenMenuChat", function(ply, text)
