@@ -5,6 +5,9 @@ local connected = false
 local adapter = string.lower(cfg.Adapter or "mysqloo")
 local dbObj
 local pendingSchema = false
+local function dbName()
+    return cfg.Database and cfg.Database.database or ""
+end
 
 local function log(msg)
     MsgN("[Kirche][DB] " .. msg)
@@ -52,10 +55,24 @@ function KIRCHEN_DB.EnsureSchema()
         )
     ]], cfg.Schema.account or "kirche_account")
 
+    local function ensureColumnTotalPaid()
+        local db = dbName()
+        if not db or db == "" then return end
+        KIRCHEN_DB.Query("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = 'total_paid'", {
+            db,
+            cfg.Schema.members
+        }, function(rows)
+            if rows and rows[1] then
+                return
+            end
+            KIRCHEN_DB.Query(string.format("ALTER TABLE %s ADD COLUMN total_paid BIGINT NOT NULL DEFAULT 0", cfg.Schema.members))
+        end)
+    end
+
     KIRCHEN_DB.Query(members, nil, function()
         KIRCHEN_DB.Query(logs, nil, function()
             KIRCHEN_DB.Query(account, nil, function()
-                KIRCHEN_DB.Query(string.format("ALTER TABLE %s ADD COLUMN IF NOT EXISTS total_paid BIGINT NOT NULL DEFAULT 0", cfg.Schema.members))
+                ensureColumnTotalPaid()
                 KIRCHEN_DB.Query(string.format("INSERT INTO %s (id, balance) VALUES (1, 0) ON DUPLICATE KEY UPDATE balance = balance", cfg.Schema.account or "kirche_account"))
                 pendingSchema = false
                 log("Schema geprüft/erstellt.")
