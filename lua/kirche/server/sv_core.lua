@@ -5,8 +5,19 @@ KIRCHEN.PendingRequests = KIRCHEN.PendingRequests or {}
 local cfg = KIRCHEN_CFG
 local netcfg = KIRCHEN_NET
 
-local function isBishop(ply)
-    return IsValid(ply) and ply:IsPlayer() and ply:Team() == cfg.BishopTeam
+function KIRCHEN.IsBishop(ply)
+    if not IsValid(ply) or not ply:IsPlayer() then return false end
+    local allowed = cfg.BishopTeam
+    if istable(allowed) then
+        for _, t in ipairs(allowed) do
+            if ply:Team() == t then return true end
+        end
+        return false
+    end
+    if isnumber(allowed) then
+        return ply:Team() == allowed
+    end
+    return false
 end
 
 local function notify(ply, level, msg)
@@ -124,7 +135,7 @@ local requestSeq = 0
 local requestCooldown = {}
 
 local function canUseSWEP(ply)
-    if not isBishop(ply) then
+    if not KIRCHEN.IsBishop(ply) then
         notify(ply, 1, "[Kirche] Du bist kein Landesbischof.")
         return false
     end
@@ -216,7 +227,7 @@ net.Receive(netcfg.RequestResponse, function(_, ply)
 end)
 
 net.Receive(netcfg.BishopUpdateContribution, function(_, ply)
-    if not isBishop(ply) then return end
+    if not KIRCHEN.IsBishop(ply) then return end
     local sid = net.ReadString()
     local contrib = clampContribution(net.ReadInt(32))
     if not sid or sid == "" then return end
@@ -229,7 +240,7 @@ net.Receive(netcfg.BishopUpdateContribution, function(_, ply)
 end)
 
 net.Receive(netcfg.BishopRemoveMember, function(_, ply)
-    if not isBishop(ply) then return end
+    if not KIRCHEN.IsBishop(ply) then return end
     local sid = net.ReadString()
     if not sid or sid == "" then return end
     deleteMember(sid, function()
@@ -239,7 +250,7 @@ net.Receive(netcfg.BishopRemoveMember, function(_, ply)
 end)
 
 net.Receive(netcfg.BishopResetDebt, function(_, ply)
-    if not isBishop(ply) or not cfg.AllowDebtReset then return end
+    if not KIRCHEN.IsBishop(ply) or not cfg.AllowDebtReset then return end
     local sid = net.ReadString()
     if not sid or sid == "" then return end
     updateMemberFields(sid, {debt = 0}, function()
