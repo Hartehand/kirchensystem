@@ -3,6 +3,8 @@ local cfg = KIRCHEN_CFG
 
 local panel
 local memberList = {}
+local textColor = Color(30, 30, 30)
+local headerColor = Color(20, 20, 20)
 
 local function sendContributionUpdate(sid, value)
     net.Start(netcfg.BishopUpdateContribution)
@@ -28,6 +30,9 @@ local function populateList(listPanel, rows)
     for _, row in ipairs(rows) do
         local line = listPanel:AddLine(row.rpname, row.steamid64, row.contribution, row.debt, row.last_charge_at or "")
         line.Member = row
+        for _, col in ipairs(line.Columns or {}) do
+            col:SetTextColor(textColor)
+        end
     end
 end
 
@@ -53,6 +58,11 @@ local function buildMenu()
     list:AddColumn("Beitrag")
     list:AddColumn("Schulden")
     list:AddColumn("Letzter Einzug")
+    for _, col in ipairs(list.Columns) do
+        if IsValid(col.Header) then
+            col.Header:SetTextColor(headerColor)
+        end
+    end
 
     local detail = vgui.Create("DPanel", panel)
     detail:SetPos(520, 60)
@@ -61,10 +71,12 @@ local function buildMenu()
     local nameLabel = vgui.Create("DLabel", detail)
     nameLabel:SetPos(10, 10)
     nameLabel:SetSize(250, 20)
+    nameLabel:SetTextColor(textColor)
 
     local steamLabel = vgui.Create("DLabel", detail)
     steamLabel:SetPos(10, 30)
     steamLabel:SetSize(250, 20)
+    steamLabel:SetTextColor(textColor)
 
     local contribSlider = vgui.Create("DNumSlider", detail)
     contribSlider:SetPos(10, 60)
@@ -72,6 +84,9 @@ local function buildMenu()
     contribSlider:SetText("Beitrag")
     contribSlider:SetMinMax(cfg.ContributionMin, cfg.ContributionMax)
     contribSlider:SetDecimals(0)
+    if contribSlider.Label then
+        contribSlider.Label:SetTextColor(textColor)
+    end
 
     local saveBtn = vgui.Create("DButton", detail)
     saveBtn:SetPos(10, 130)
@@ -81,6 +96,7 @@ local function buildMenu()
     local debtLabel = vgui.Create("DLabel", detail)
     debtLabel:SetPos(10, 170)
     debtLabel:SetSize(250, 20)
+    debtLabel:SetTextColor(textColor)
 
     local kickBtn = vgui.Create("DButton", detail)
     kickBtn:SetPos(10, 200)
@@ -158,4 +174,3 @@ net.Receive(netcfg.BishopData, function()
     end
     buildMenu()
 end)
-

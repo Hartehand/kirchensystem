@@ -5,19 +5,34 @@ KIRCHEN.PendingRequests = KIRCHEN.PendingRequests or {}
 local cfg = KIRCHEN_CFG
 local netcfg = KIRCHEN_NET
 
+local function resolveTeamId(entry)
+    if isnumber(entry) then return entry end
+    if isstring(entry) then
+        local val = _G[entry]
+        if isnumber(val) then return val end
+    end
+end
+
+local function resolveBishopTeams()
+    local allowed = cfg.BishopTeam
+    if allowed == nil then return {} end
+    local list = {}
+    if istable(allowed) then
+        for _, v in ipairs(allowed) do
+            local id = resolveTeamId(v)
+            if id then list[id] = true end
+        end
+    else
+        local id = resolveTeamId(allowed)
+        if id then list[id] = true end
+    end
+    return list
+end
+
 function KIRCHEN.IsBishop(ply)
     if not IsValid(ply) or not ply:IsPlayer() then return false end
-    local allowed = cfg.BishopTeam
-    if istable(allowed) then
-        for _, t in ipairs(allowed) do
-            if ply:Team() == t then return true end
-        end
-        return false
-    end
-    if isnumber(allowed) then
-        return ply:Team() == allowed
-    end
-    return false
+    local allowed = resolveBishopTeams()
+    return allowed[ply:Team()] == true
 end
 
 local function notify(ply, level, msg)
