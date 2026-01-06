@@ -103,7 +103,7 @@ local function ensureConnectedCallback()
     end
 end
 
-hook.Add("KircheDatabaseConnected", "Kirche_LoadMembers", ensureConnectedCallback)
+hook.Add("KircheSchemaReady", "Kirche_LoadMembers", ensureConnectedCallback)
 
 hook.Add("PlayerInitialSpawn", "Kirche_SyncRPName", function(ply)
     if not cfg.SyncRPNameOnSpawn then return end

@@ -34,7 +34,7 @@ lua/
 
 3. **Konfiguration** (`lua/kirche/sh_config.lua`)
    - `BishopTeam` auf das Landesbischof-Team setzen (z. B. `TEAM_LANDESBISCHOF`).
-   - Datenbankzugang (`Database`) und Adapter (`Adapter = "mysqloo"` oder `"tmysql4"`) setzen.
+   - Datenbankzugang (`Database`) und Adapter (`Adapter = "mysqloo"` oder `"tmysql4"`) setzen. **Wichtig:** `database` muss exakt der bestehenden Datenbank (z. B. `db_422750_80`) entsprechen; Tabellen `kirche_members`/`kirche_logs` werden beim Start automatisch erzeugt.
    - Beitragsspannen, Intervalle, Benachrichtigungen, Schulden-Limits anpassen.
 
 4. **SWEP vergeben**

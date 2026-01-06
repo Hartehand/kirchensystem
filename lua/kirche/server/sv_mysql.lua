@@ -4,6 +4,7 @@ local cfg = KIRCHEN_CFG
 local connected = false
 local adapter = string.lower(cfg.Adapter or "mysqloo")
 local dbObj
+local pendingSchema = false
 
 local function log(msg)
     MsgN("[Kirche][DB] " .. msg)
@@ -17,6 +18,41 @@ function KIRCHEN_DB.IsConnected()
     return connected
 end
 
+function KIRCHEN_DB.EnsureSchema()
+    if not connected then return end
+    if pendingSchema then return end
+    pendingSchema = true
+
+    local members = string.format([[
+        CREATE TABLE IF NOT EXISTS %s (
+            steamid64 VARCHAR(32) NOT NULL PRIMARY KEY,
+            rpname VARCHAR(255) NOT NULL,
+            joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            contribution INT NOT NULL DEFAULT 50,
+            debt INT NOT NULL DEFAULT 0,
+            last_charge_at DATETIME NULL
+        )
+    ]], cfg.Schema.members)
+
+    local logs = string.format([[
+        CREATE TABLE IF NOT EXISTS %s (
+            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            steamid64 VARCHAR(32) NOT NULL,
+            action VARCHAR(64) NOT NULL,
+            amount INT NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    ]], cfg.Schema.logs)
+
+    KIRCHEN_DB.Query(members, nil, function()
+        KIRCHEN_DB.Query(logs, nil, function()
+            pendingSchema = false
+            log("Schema geprüft/erstellt.")
+            hook.Run("KircheSchemaReady")
+        end)
+    end)
+end
+
 local function connect_mysqloo()
     local mysqloo = mysqloo or require("mysqloo")
     dbObj = mysqloo.connect(cfg.Database.host, cfg.Database.user, cfg.Database.password, cfg.Database.database, cfg.Database.port)
@@ -24,6 +60,7 @@ local function connect_mysqloo()
     function dbObj:onConnected()
         connected = true
         log("Verbunden über mysqloo.")
+        KIRCHEN_DB.EnsureSchema()
         hook.Run("KircheDatabaseConnected")
     end
 
@@ -45,6 +82,7 @@ local function connect_tmysql4()
     connected = true
     dbObj = db
     log("Verbunden über tmysql4.")
+    KIRCHEN_DB.EnsureSchema()
     hook.Run("KircheDatabaseConnected")
 end
 
