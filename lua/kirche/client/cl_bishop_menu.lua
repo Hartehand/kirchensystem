@@ -212,8 +212,8 @@ local function buildMenu()
         net.SendToServer()
     end
 
-    function panel.RefreshAccountLabel(newBalance)
-        accountBalance = newBalance
+    function panel:RefreshAccountLabel(newBalance)
+        accountBalance = tonumber(newBalance) or accountBalance
         refreshAccountLabel()
     end
 
