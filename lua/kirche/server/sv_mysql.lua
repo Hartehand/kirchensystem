@@ -30,7 +30,8 @@ function KIRCHEN_DB.EnsureSchema()
             joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             contribution INT NOT NULL DEFAULT 50,
             debt INT NOT NULL DEFAULT 0,
-            last_charge_at DATETIME NULL
+            last_charge_at DATETIME NULL,
+            total_paid BIGINT NOT NULL DEFAULT 0
         )
     ]], cfg.Schema.members)
 
@@ -54,6 +55,7 @@ function KIRCHEN_DB.EnsureSchema()
     KIRCHEN_DB.Query(members, nil, function()
         KIRCHEN_DB.Query(logs, nil, function()
             KIRCHEN_DB.Query(account, nil, function()
+                KIRCHEN_DB.Query(string.format("ALTER TABLE %s ADD COLUMN IF NOT EXISTS total_paid BIGINT NOT NULL DEFAULT 0", cfg.Schema.members))
                 KIRCHEN_DB.Query(string.format("INSERT INTO %s (id, balance) VALUES (1, 0) ON DUPLICATE KEY UPDATE balance = balance", cfg.Schema.account or "kirche_account"))
                 pendingSchema = false
                 log("Schema geprüft/erstellt.")

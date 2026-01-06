@@ -60,14 +60,15 @@ end
 local function upsertMember(data, callback)
     KIRCHEN.Members[data.steamid64] = data
     KIRCHEN_DB.Query(string.format([[
-        INSERT INTO %s (steamid64, rpname, joined_at, contribution, debt, last_charge_at)
-        VALUES (?, ?, NOW(), ?, ?, NULL)
-        ON DUPLICATE KEY UPDATE rpname = VALUES(rpname), contribution = VALUES(contribution), debt = VALUES(debt)
+        INSERT INTO %s (steamid64, rpname, joined_at, contribution, debt, last_charge_at, total_paid)
+        VALUES (?, ?, NOW(), ?, ?, NULL, ?)
+        ON DUPLICATE KEY UPDATE rpname = VALUES(rpname), contribution = VALUES(contribution), debt = VALUES(debt), total_paid = VALUES(total_paid)
     ]], cfg.Schema.members), {
         data.steamid64,
         data.rpname,
         data.contribution,
-        data.debt or 0
+        data.debt or 0,
+        data.total_paid or 0
     }, callback)
 end
 
@@ -106,6 +107,7 @@ local function addMember(ply)
         joined_at = os.date("%Y-%m-%d %H:%M:%S"),
         contribution = cfg.DefaultContribution,
         debt = 0,
+        total_paid = 0,
         last_charge_at = nil
     }
     upsertMember(data, function()
@@ -202,6 +204,7 @@ function KIRCHEN.OpenBishopMenu(ply)
         net.WriteString(row.rpname or "")
         net.WriteInt(tonumber(row.contribution) or cfg.DefaultContribution, 32)
         net.WriteInt(tonumber(row.debt) or 0, 32)
+        net.WriteInt(tonumber(row.total_paid) or 0, 32)
         net.WriteString(tostring(row.joined_at or ""))
         net.WriteString(tostring(row.last_charge_at or ""))
     end

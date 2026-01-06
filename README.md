@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS kirche_members (
   joined_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   contribution INT NOT NULL DEFAULT 50,
   debt INT NOT NULL DEFAULT 0,
-  last_charge_at DATETIME NULL
+  last_charge_at DATETIME NULL,
+  total_paid BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS kirche_logs (
@@ -93,3 +94,5 @@ INSERT INTO kirche_account (id, balance) VALUES (1, 0)
    - `AllowDebtReset = true`, Button testen.
 8. **Kirchenkonto**
    - Nach Einzügen Kontostand prüfen, Einzahlen- und Abheben-Buttons testen (Betrag wird vom Bischofskonto abgezogen bzw. gutgeschrieben).
+9. **Gesamt bezahlt je Mitglied**
+   - Im Bischof-Menü wird pro Mitglied der kumulierte Zahlbetrag angezeigt; nach neuen Einzügen prüfen, ob der Wert steigt.

@@ -29,7 +29,7 @@ end
 local function populateList(listPanel, rows)
     listPanel:Clear()
     for _, row in ipairs(rows) do
-        local line = listPanel:AddLine(row.rpname, row.steamid64, row.contribution, row.debt, row.last_charge_at or "")
+        local line = listPanel:AddLine(row.rpname, row.steamid64, row.contribution, row.total_paid or 0, row.debt, row.last_charge_at or "")
         line.Member = row
         for _, col in ipairs(line.Columns or {}) do
             col:SetTextColor(textColor)
@@ -57,6 +57,7 @@ local function buildMenu()
     list:AddColumn("Name")
     list:AddColumn("SteamID64")
     list:AddColumn("Beitrag")
+    list:AddColumn("Gesamt bezahlt")
     list:AddColumn("Schulden")
     list:AddColumn("Letzter Einzug")
     for _, col in ipairs(list.Columns) do
@@ -99,42 +100,47 @@ local function buildMenu()
     debtLabel:SetSize(250, 20)
     debtLabel:SetTextColor(textColor)
 
+    local totalPaidLabel = vgui.Create("DLabel", detail)
+    totalPaidLabel:SetPos(10, 190)
+    totalPaidLabel:SetSize(250, 20)
+    totalPaidLabel:SetTextColor(textColor)
+
     local kickBtn = vgui.Create("DButton", detail)
-    kickBtn:SetPos(10, 200)
+    kickBtn:SetPos(10, 220)
     kickBtn:SetSize(250, 30)
     kickBtn:SetText("Mitglied entfernen")
 
     local resetBtn = vgui.Create("DButton", detail)
-    resetBtn:SetPos(10, 240)
+    resetBtn:SetPos(10, 260)
     resetBtn:SetSize(250, 30)
     resetBtn:SetText("Schulden zurücksetzen")
     resetBtn:SetEnabled(cfg.AllowDebtReset)
 
     local accountLabel = vgui.Create("DLabel", detail)
-    accountLabel:SetPos(10, 280)
+    accountLabel:SetPos(10, 300)
     accountLabel:SetSize(250, 20)
     accountLabel:SetTextColor(textColor)
     accountLabel:SetText("Kirchenkonto: 0$")
 
     local depositEntry = vgui.Create("DNumberWang", detail)
-    depositEntry:SetPos(10, 305)
+    depositEntry:SetPos(10, 325)
     depositEntry:SetSize(120, 25)
     depositEntry:SetMin(0)
     depositEntry:SetValue(0)
 
     local withdrawEntry = vgui.Create("DNumberWang", detail)
-    withdrawEntry:SetPos(140, 305)
+    withdrawEntry:SetPos(140, 325)
     withdrawEntry:SetSize(120, 25)
     withdrawEntry:SetMin(0)
     withdrawEntry:SetValue(0)
 
     local depositBtn = vgui.Create("DButton", detail)
-    depositBtn:SetPos(10, 335)
+    depositBtn:SetPos(10, 355)
     depositBtn:SetSize(120, 30)
     depositBtn:SetText("Einzahlen")
 
     local withdrawBtn = vgui.Create("DButton", detail)
-    withdrawBtn:SetPos(140, 335)
+    withdrawBtn:SetPos(140, 355)
     withdrawBtn:SetSize(120, 30)
     withdrawBtn:SetText("Abheben")
 
@@ -153,6 +159,7 @@ local function buildMenu()
         steamLabel:SetText("SteamID64: " .. (row.steamid64 or ""))
         contribSlider:SetValue(tonumber(row.contribution) or cfg.DefaultContribution)
         debtLabel:SetText("Schulden: " .. (row.debt or 0) .. "$")
+        totalPaidLabel:SetText("Gesamt bezahlt: " .. (row.total_paid or 0) .. "$")
 
         saveBtn.DoClick = function()
             sendContributionUpdate(row.steamid64, contribSlider:GetValue())
@@ -223,6 +230,7 @@ net.Receive(netcfg.BishopData, function()
             rpname = net.ReadString(),
             contribution = net.ReadInt(32),
             debt = net.ReadInt(32),
+            total_paid = net.ReadInt(32),
             joined_at = net.ReadString(),
             last_charge_at = net.ReadString()
         }

@@ -35,6 +35,11 @@ local function processOnline(member)
     local collected = payDebt + payContribution
     if collected > 0 then
         KIRCHEN.AddToAccount(collected, "charge_collect")
+        KIRCHEN.Members[member.steamid64].total_paid = (KIRCHEN.Members[member.steamid64].total_paid or 0) + collected
+        KIRCHEN_DB.Query(string.format("UPDATE %s SET total_paid = total_paid + ? WHERE steamid64 = ?", cfg.Schema.members), {
+            collected,
+            member.steamid64
+        })
     end
 
     local newDebt = debt + math.max(0, contribution - payContribution)
